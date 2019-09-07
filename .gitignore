@@ -1,0 +1,13 @@
+node_modules/
+dist/
+
+mongodb/db/
+
+# エラー関係
+package-lock.json
+yarn-error.log
+npm-debug.log
+
+# エディタなどで生成されるファイル
+.idea/
+.DS_Store
