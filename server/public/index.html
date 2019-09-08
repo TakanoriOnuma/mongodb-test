@@ -61,6 +61,12 @@
 <body>
   <div id="app"></div>
   <script>
+    // APIリクエストの設定
+    const api = axios.create({
+      baseURL: '/api',
+      timeout: 15000,
+    });
+
     /**
      * 入力フォームコンポーネント
      */
@@ -144,7 +150,7 @@
       },
       methods: {
         fetchTodoList() {
-          axios.get('/api/todos')
+          api.get('/todos')
             .then((response) => {
               this.$data.todoList = response.data;
             });
@@ -154,7 +160,7 @@
          * @param {string} text - テキスト
          */
         onSubmit(text) {
-          axios.post('/api/todos', {
+          api.post('/todos', {
             text,
           })
             .then(() => {
@@ -167,7 +173,7 @@
          * @param {boolean} isNextDone - 次更新する終了ステータス
          */
         onCheckTodo(todoId, isNextDone) {
-          axios.put(`/api/todos/check/${todoId}`, {
+          api.put(`/todos/check/${todoId}`, {
             isDone: isNextDone,
           })
             .then(() => {
@@ -179,7 +185,7 @@
          * @param {number} todoId - TODOのID
          */
         onDeleteTodo(todoId) {
-          axios.delete(`/api/todos/${todoId}`)
+          api.delete(`/todos/${todoId}`)
             .then(() => {
               this.fetchTodoList();
             });
