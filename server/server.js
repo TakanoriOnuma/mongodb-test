@@ -22,6 +22,14 @@ if (process.env.NODE_ENV !== 'production') {
     .catch((err) => {
       console.error(err);
     });
+} else {
+  // 本番では環境変数に入っているURIにアクセスする
+  mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+  })
+    .catch((err) => {
+      console.error(err);
+    });
 }
 
 // expressインスタンスの生成
