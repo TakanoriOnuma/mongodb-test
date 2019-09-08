@@ -5,8 +5,200 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>MongoDBテスト</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.22/dist/vue.js"></script>
+  <script src="https://unpkg.com/vue-types"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.10/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    .list {
+      position: relative;
+      padding: 0;
+    }
+
+    .item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      transition: all 0.5s;
+      padding: 10px;
+      margin-top: 10px;
+      border: solid 1px #ddd;
+      border-radius: 5px;
+      box-shadow: 0 0 10px 0 rgba(#000, 0.1);
+      cursor: pointer;
+    }
+
+    .item__text {
+      flex: 1 1 0;
+      padding: 0 5px;
+    }
+
+    /* 要素が入るときのアニメーション */
+    .flip-enter-active {
+      opacity: 0;
+      transform: translate3d(0, -30px, 0);
+    }
+    .flip-enter-to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    /* 要素が消える時のアニメーション */
+    .flip-leave-active {
+      position: absolute;
+    }
+    .flip-leave-to {
+      opacity: 0;
+      transform: translate3d(0, -30px, 0);
+    }
+  </style>
 </head>
 <body>
-  <p>hello!</p>
+  <div id="app"></div>
+  <script>
+    /**
+     * 入力フォームコンポーネント
+     */
+    const InputForm = {
+      data() {
+        return {
+          text: '',
+        };
+      },
+      methods: {
+        /**
+         * 送信時
+         * @param {event} event - DOMのイベント
+         */
+        onSubmit(event) {
+          event.preventDefault();
+          this.$emit('submit', this.$data.text);
+          this.$data.text = '';
+        }
+      },
+      template: `
+        <form @submit="onSubmit">
+          <input v-model="$data.text" type="text" placeholder="TODO" />
+          <button type="submit" :disabled="$data.text === ''">送信</button>
+        </form>
+      `
+    };
+
+    /**
+     * TODOリストコンポーネント
+     */
+    const TodoList = {
+      props: {
+        todoList: VueTypes.arrayOf(VueTypes.shape({
+          _id: VueTypes.string.isRequired,
+          isDone: VueTypes.bool.isRequired,
+          text: VueTypes.string.isRequired
+        }).loose).isRequired
+      },
+      methods: {
+        /**
+         * 削除ボタンをクリックした時
+         * @param {event} event - DOMのイベント
+         * @param {number} todoId - TODOのID
+         */
+        onDeleteTodo(event, todoId) {
+          event.stopPropagation();
+          this.$emit('delete', todoId);
+        }
+      },
+      template: `
+        <transition-group tag="ul" class="list" name="flip">
+          <template v-for="item in $props.todoList">
+            <li
+              :key="item._id"
+              class="item"
+              @click="$emit('check', item._id, !item.isDone)"
+            >
+              <input type="checkbox" :checked="item.isDone" />
+              <span class="item__text">{{ item.text }}</span>
+              <button @click="onDeleteTodo($event, item._id)">削除</button>
+            </li>
+          </template>
+        </transition-group>
+      `
+    };
+
+    new Vue({
+      el: '#app',
+      components: {
+        InputForm,
+        TodoList,
+      },
+      data() {
+        return {
+          todoList: [],
+        };
+      },
+      created() {
+        this.fetchTodoList();
+      },
+      methods: {
+        fetchTodoList() {
+          axios.get('/api/todos')
+            .then((response) => {
+              this.$data.todoList = response.data;
+            });
+        },
+        /**
+         * 送信された時
+         * @param {string} text - テキスト
+         */
+        onSubmit(text) {
+          axios.post('/api/todos', {
+            text,
+          })
+            .then(() => {
+              this.fetchTodoList();
+            });
+        },
+        /**
+         * TODOのチェック
+         * @param {number} todoId - TODOのID
+         * @param {boolean} isNextDone - 次更新する終了ステータス
+         */
+        onCheckTodo(todoId, isNextDone) {
+          axios.put(`/api/todos/check/${todoId}`, {
+            isDone: isNextDone,
+          })
+            .then(() => {
+              this.fetchTodoList();
+            });
+        },
+        /**
+         * TODOの削除ボタンがクリックされた時
+         * @param {number} todoId - TODOのID
+         */
+        onDeleteTodo(todoId) {
+          axios.delete(`/api/todos/${todoId}`)
+            .then(() => {
+              this.fetchTodoList();
+            });
+        },
+      },
+      template: `
+        <div>
+          <InputForm
+            @submit="onSubmit"
+          />
+          <p>TODO LIST</p>
+          <TodoList
+            :todoList="$data.todoList"
+            @check="onCheckTodo"
+            @delete="onDeleteTodo"
+          />
+        </div>
+      `,
+    });
+  </script>
 </body>
 </html>
